@@ -13,9 +13,10 @@ Get the latest build from the [Releases page](https://github.com/nikitavolodarsk
 | Platform | File |
 |---|---|
 | macOS (Apple Silicon) | `pero-journal-macos-arm64.zip` |
-| macOS (Intel) | `pero-journal-macos-amd64.zip` |
 | Windows | `pero-journal-windows-amd64.zip` |
 | Linux | `pero-journal-linux-amd64.tar.gz` |
+
+> **Intel Mac** (pre-2020) is not supported. If you need it, build from source.
 
 ### macOS
 

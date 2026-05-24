@@ -16,13 +16,9 @@ jobs:
       fail-fast: false    # let all platforms attempt even if one fails
       matrix:
         include:
-          - os:       macos-14        # Apple Silicon runner
+          - os:       macos-14        # Apple Silicon (M1/M2/M3)
             platform: darwin/arm64
             artifact: pero-journal-macos-arm64
-
-          - os:       macos-13        # last Intel-based macOS runner
-            platform: darwin/amd64
-            artifact: pero-journal-macos-amd64
 
           - os:       windows-latest
             platform: windows/amd64

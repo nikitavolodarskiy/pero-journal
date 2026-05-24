@@ -1,0 +1,99 @@
+name: Release
+
+# Triggered by pushing a version tag: git tag v1.0.0 && git push --tags
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # needed to create the GitHub release
+
+jobs:
+  # ── Build on every native platform ─────────────────────────────────────────
+  build:
+    strategy:
+      fail-fast: false    # let all platforms attempt even if one fails
+      matrix:
+        include:
+          - os:       macos-14        # Apple Silicon runner
+            platform: darwin/arm64
+            artifact: pero-journal-macos-arm64
+
+          - os:       macos-13        # last Intel-based macOS runner
+            platform: darwin/amd64
+            artifact: pero-journal-macos-amd64
+
+          - os:       windows-latest
+            platform: windows/amd64
+            artifact: pero-journal-windows-amd64
+
+          - os:       ubuntu-22.04    # WebKit2GTK 4.0 is available here
+            platform: linux/amd64
+            artifact: pero-journal-linux-amd64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: gui/go.mod   # reads the `go` directive from go.mod
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Linux only: Wails needs GTK3 + WebKit2GTK at build time.
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.12.0
+
+      - name: Build
+        working-directory: gui
+        run: wails build -platform ${{ matrix.platform }}
+
+      # ── Package ──────────────────────────────────────────────────────────
+      - name: Package (macOS)
+        if: runner.os == 'macOS'
+        run: zip -r ${{ matrix.artifact }}.zip gui/build/bin/pero.app
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path gui\build\bin\pero.exe -DestinationPath ${{ matrix.artifact }}.zip
+
+      - name: Package (Linux)
+        if: runner.os == 'Linux'
+        run: tar -czf ${{ matrix.artifact }}.tar.gz -C gui/build/bin pero
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            ${{ matrix.artifact }}.zip
+            ${{ matrix.artifact }}.tar.gz
+          if-no-files-found: error
+
+  # ── Collect all artifacts and publish the GitHub release ───────────────────
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true   # flatten all artifacts into one directory
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true   # auto-generates notes from commits
+          files: |
+            *.zip
+            *.tar.gz

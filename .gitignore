@@ -14,6 +14,7 @@
 # ── Claude Code ───────────────────────────────────────────────────────────────
 # Personal project settings — not useful to other contributors.
 .claude/
+CLAUDE.md
 
 # ── Go ────────────────────────────────────────────────────────────────────────
 # CLI binary produced by `go build` at the repo root.

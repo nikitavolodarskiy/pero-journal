@@ -100,6 +100,21 @@ pero init       # create default config
 
 ---
 
+## Privacy & security
+
+Pero stores your journal as **plain, unencrypted text files** on your local disk. There is no password protection, no encryption at rest, and no access control beyond what your operating system provides.
+
+This means:
+
+- Anyone with access to your filesystem can read your entries directly.
+- If your laptop is lost, stolen, or accessed without your permission, your journal is readable by whoever gets in.
+- Cloud backup and sync tools (iCloud, Dropbox, Google Drive, etc.) will upload your entries in plain text — their own privacy policies and security practices apply.
+- Pero makes no guarantees about the confidentiality of your data.
+
+If the contents of your journal are sensitive, consider enabling full-disk encryption on your machine (FileVault on macOS, BitLocker on Windows) and reviewing what you sync to the cloud. Pero is a writing tool — securing the device and the files is your responsibility.
+
+---
+
 ## Build from source
 
 Requirements: [Go 1.22+](https://go.dev/dl/), [Node.js 20+](https://nodejs.org), [Wails v2](https://wails.io/docs/gettingstarted/installation)

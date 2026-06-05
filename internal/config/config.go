@@ -103,6 +103,46 @@ func Init() (string, error) {
 	return cfgPath, nil
 }
 
+// Save writes the given journal_dir and editor values to the config file,
+// creating the config directory if it does not exist.
+// The values are stored exactly as provided — Load() expands ~ on read.
+func Save(journalDir, editor string) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("cannot find home directory: %w", err)
+	}
+
+	cfgDir := filepath.Join(home, configDirName)
+	if err := os.MkdirAll(cfgDir, 0o755); err != nil {
+		return fmt.Errorf("cannot create config directory: %w", err)
+	}
+
+	cfgPath := filepath.Join(cfgDir, configFileName)
+	f, err := os.Create(cfgPath)
+	if err != nil {
+		return fmt.Errorf("cannot create config file: %w", err)
+	}
+
+	cfg := Config{JournalDir: journalDir, Editor: editor}
+	if encErr := toml.NewEncoder(f).Encode(cfg); encErr != nil {
+		f.Close()
+		return fmt.Errorf("cannot write config: %w", encErr)
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("cannot close config file: %w", err)
+	}
+	return nil
+}
+
+// ResolvePath expands a leading ~ to the user's home directory.
+func ResolvePath(path string) (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("cannot find home directory: %w", err)
+	}
+	return expandHome(path, home), nil
+}
+
 // expandHome replaces a leading ~ with the provided home directory.
 func expandHome(path, home string) string {
 	if path == "~" {

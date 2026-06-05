@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"sync"
 
 	"pero/internal/config"
 	"pero/internal/journal"
@@ -12,6 +14,8 @@ import (
 // Every exported method on App is automatically bound to the Svelte frontend.
 type App struct {
 	ctx context.Context
+	mu  sync.Mutex // guards cfg and svc; only SaveConfig writes them after init
+	cfg *config.Config
 	svc service.Service
 }
 
@@ -20,7 +24,7 @@ func NewApp() *App {
 	if err != nil {
 		panic("failed to load pero config: " + err.Error())
 	}
-	return &App{svc: service.New(cfg)}
+	return &App{cfg: cfg, svc: service.New(cfg)}
 }
 
 func (a *App) startup(ctx context.Context) {
@@ -63,4 +67,32 @@ func (a *App) WriteEntry(date string, content string) error {
 // GetStats returns aggregated journal statistics.
 func (a *App) GetStats() (service.Stats, error) {
 	return a.svc.Stats()
+}
+
+// GetConfig returns a snapshot of the current configuration.
+func (a *App) GetConfig() config.Config {
+	a.mu.Lock()
+	cfg := *a.cfg
+	a.mu.Unlock()
+	return cfg
+}
+
+// SaveConfig writes new settings to disk and rebuilds the service so changes
+// take effect immediately without restarting the app.
+// We do NOT call Load() here because Load() re-applies the PERO_JOURNAL_DIR
+// env-var override, which would ignore the user's explicit choice.
+func (a *App) SaveConfig(journalDir, editor string) error {
+	if err := config.Save(journalDir, editor); err != nil {
+		return fmt.Errorf("save config: %w", err)
+	}
+	resolved, err := config.ResolvePath(journalDir)
+	if err != nil {
+		return fmt.Errorf("resolve journal dir: %w", err)
+	}
+	cfg := &config.Config{JournalDir: resolved, Editor: editor}
+	a.mu.Lock()
+	a.cfg = cfg
+	a.svc = service.New(cfg)
+	a.mu.Unlock()
+	return nil
 }

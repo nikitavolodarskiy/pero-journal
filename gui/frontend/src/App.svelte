@@ -1,18 +1,22 @@
 <script>
   import { onMount } from 'svelte'
-  import Sidebar from './components/Sidebar.svelte'
-  import Editor  from './components/Editor.svelte'
+  import Sidebar  from './components/Sidebar.svelte'
+  import Editor   from './components/Editor.svelte'
+  import Settings from './components/Settings.svelte'
 
-  import { GetToday, GetEntries, ReadEntry, WriteEntry, GetStats } from '../wailsjs/go/main/App.js'
+  import { GetToday, GetEntries, ReadEntry, WriteEntry, GetStats, GetConfig, SaveConfig } from '../wailsjs/go/main/App.js'
   import { WindowSetTitle } from '../wailsjs/runtime/runtime.js'
 
-  let entries    = []
-  let stats      = null
-  let activeDate = ''
-  let content    = ''
-  let saveStatus = ''   // '' | 'saving' | 'saved' | 'error'
-  let saveTimer  = null
-  let isLoading  = false
+  let entries      = []
+  let stats        = null
+  let activeDate   = ''
+  let content      = ''
+  let saveStatus   = ''   // '' | 'saving' | 'saved' | 'error'
+  let saveTimer    = null
+  let isLoading    = false
+
+  let showSettings = false
+  let appConfig    = null
 
   // ── Startup ──────────────────────────────────────────────────────────────
 
@@ -21,6 +25,7 @@
     await loadEntries()              // now today's entry is in the list
     await loadStats()
     await openEntry(today.Date.slice(0, 10))
+    appConfig = await GetConfig()
   })
 
   // ── Data loading ─────────────────────────────────────────────────────────
@@ -87,6 +92,20 @@
     }
   }
 
+  async function saveSettings(journalDir, editor) {
+    await SaveConfig(journalDir, editor)
+    appConfig = await GetConfig()
+    // Cancel any pending autosave before the directory changes under it.
+    clearTimeout(saveTimer)
+    activeDate = ''
+    content    = ''
+    // Same boot sequence as onMount: create today's file, load list, open it.
+    const today = await GetToday()
+    await loadEntries()
+    await loadStats()
+    await openEntry(today.Date.slice(0, 10))
+  }
+
   function formatTitle(dateStr) {
     if (!dateStr) return 'Pero'
     const d = new Date(dateStr + 'T00:00:00')
@@ -105,7 +124,16 @@
     onSelect={openEntry}
     onRefresh={refreshEntries}
     onToday={todayEntry}
+    onOpenSettings={() => showSettings = true}
   />
+
+  {#if showSettings && appConfig}
+    <Settings
+      config={appConfig}
+      onSave={saveSettings}
+      onClose={() => showSettings = false}
+    />
+  {/if}
 
   <main class="main">
     {#if saveStatus === 'saving'}

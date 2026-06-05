@@ -3,8 +3,9 @@
   export let stats      = null
   export let activeDate = ''
   export let onSelect   = (_date) => {}
-  export let onRefresh  = () => {}
-  export let onToday    = () => {}
+  export let onRefresh      = () => {}
+  export let onToday        = () => {}
+  export let onOpenSettings = () => {}
 
   let refreshing = false
 
@@ -181,6 +182,10 @@
     </section>
   {/if}
 
+  <footer class="sidebar-footer">
+    <button class="settings-link" on:click={onOpenSettings}>Settings</button>
+  </footer>
+
 </aside>
 
 <style>
@@ -341,6 +346,30 @@
   }
 
   /* ── Stats ── */
+
+  .sidebar-footer {
+    border-top: 1px solid #2a2a2a;
+    padding:    4px 8px 8px;
+  }
+
+  .settings-link {
+    display:     block;
+    width:       100%;
+    border:      none;
+    background:  transparent;
+    text-align:  left;
+    padding:     6px 8px;
+    font-size:   12px;
+    color:       #555;
+    cursor:      pointer;
+    border-radius: 4px;
+    transition:  color 0.15s, background 0.15s;
+  }
+
+  .settings-link:hover {
+    color:      #ccc;
+    background: #2d2d2d;
+  }
 
   .stats {
     border-top:     1px solid #333;
